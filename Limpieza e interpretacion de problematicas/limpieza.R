@@ -63,6 +63,10 @@ generadorPopUp=function(tema=1,data_inicial=data_inicial){
     dplyr::select(CVEGEO,`Sector--Municipio`,dplyr::matches(paste0(tema_seleccionado,"--")))
   zz=list()
   zz=append(zz,)
+  lapply(names(base_filtrada), function(col_name) {
+    values <- data_inicial[[col_name]]
+    list(name = col_name, values = values)
+  }) |> lapply(FUN=\(z){paste0(z$name," .....",z$values)})
    |> dplyr::select(-CVEGEO) |> 
     lapply(FUN=\(x){
       zz=append(zz,
@@ -77,6 +81,13 @@ generadorPopUp=function(tema=1,data_inicial=data_inicial){
     #indice_1: valor_1
         #...
     #indice_n: valor_n
+  lapply(names(data_inicial |> dplyr::select(CVEGEO, `Sector--Municipio`, `Desarrollo.económico--PIB per capita`)), function(col_name) {
+    values <- data_inicial[[col_name]]
+    list(name = col_name, values = values)
+  }) |> lapply(FUN=\(z){paste0(z$name,": ",z$values)}) |> lapply(FUN=\(w) {
+    ifelse(substr(w,start = nchar(w),nchar(w))==' ',"",w)
+  })
+  
   
   # paste(
   #   "<b>Municipio: </b>", htmlEscape(turismo_shp$NOM_MUN), "<br>",
