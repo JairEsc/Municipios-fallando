@@ -1,4 +1,5 @@
 data_inicial=read.csv("../Indicadores Municipales de Tendencia Negativa.xlsx - Hoja1.csv")
+> colnames(data_inicial)[27]="Medio.Ambiente--Sitios de disposición final"
 copia_colnames=colnames(data_inicial)
 for(name_i in 2:length(colnames(data_inicial))){
   name=colnames(data_inicial)[name_i]
@@ -132,6 +133,7 @@ library(leaflet)
 library(htmlwidgets)
 library(dplyr)
 library(leaflegend)
+library(leafem)
 mapa_web=leaflet() |> 
   addTiles() |> 
   addPolygons(data=municipios |> as("Spatial"),group = "municipios_base",label = municipios$NOMGEO,,color = "white",fillColor = "gray",weight = 2,fillOpacity = 0.3) |> 
@@ -195,8 +197,9 @@ mapa_web=leaflet() |>
     position = "bottomright",
     pal = colorFactor(palette = c("red","#ff7f7f"),reverse = T,domain = c("Alta Prioridad","Muy Alta Prioridad"), na.color = "#808080"),opacity = 1,
     values = c("Muy Alta Prioridad","Alta Prioridad","Sin prioridad")
-  ) 
+  ) |> 
+  addLogo(img ="https://raw.githubusercontent.com/JairEsc/Gob/main/Otros_archivos/imagenes/sigeh_solo.png",src = "remote",position ="bottomleft",offset.x ='150' ,width = "417px",height = "62px"  )
 
-mapa_web |> htmlwidgets::saveWidget("problematicas_municipios.html",title = "Municipios en Prioridad")
+mapa_web |> htmlwidgets::saveWidget("problematicas_municipios.html",title = "Municipios en Prioridad",selfcontained = F)
 
 
