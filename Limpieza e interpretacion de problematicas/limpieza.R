@@ -12,9 +12,10 @@ colnames(data_inicial)=paste0(copia_colnames,"--",data_inicial[1,])
 data_inicial=data_inicial[-1,]
 colnames(data_inicial)[1]="CVEGEO"
 source("../../../ASUS Gamer Jair/codigos/puras_librerias.R")
+library(sf)
 municipios=read_sf("../../../Reutilizables/Cartografia/conjunto_de_datos/13mun.shp") |> st_transform(st_crs("EPSG:4326"))
 Encoding(municipios$NOMGEO) ="latin1"
-
+municipios=municipios[order(municipios$CVEGEO),]
 data_inicial=data_inicial |> 
   dplyr::mutate(`Pobreza.y.carencias.2010.2020--Índice de rezago social\n2010-2020`=
                   ifelse(`Pobreza.y.carencias.2010.2020--Índice de rezago social\n2010-2020`=='Alto',"1",""))
@@ -30,16 +31,16 @@ data_inicial$`Medio.Ambiente--Toneladas de basura generadas por cada mil habitan
 generarPaleta=function(tema=1,base=data_inicial){
   posibles_temas=unique(copia_colnames)[3:9]
   tema_seleccionado=posibles_temas[tema]
-  print(tema_seleccionado)
+  #print(tema_seleccionado)
   base_filtrada=data_inicial |> 
     dplyr::select(CVEGEO,`Sector--Municipio`,dplyr::matches(paste0(tema_seleccionado,"--")))
-  print(colnames(base_filtrada))
+  #print(colnames(base_filtrada))
   numero_de_indicadores=ncol(base_filtrada)-2
   base_filtrada_c_rank=base_filtrada 
   base_filtrada_c_rank[,3:ncol(base_filtrada_c_rank)]=lapply(
     base_filtrada_c_rank[,3:ncol(base_filtrada_c_rank)],
     FUN=\(x) {
-      print(x)
+      #print(x)
       z=rank(abs(x |> as.numeric()),na.last = "keep",ties.method = "average")
       max_z=max(z,na.rm = T)
       z=max_z-z+1
@@ -47,120 +48,155 @@ generarPaleta=function(tema=1,base=data_inicial){
       return(z)
       }
   )
+  #return(base_filtrada_c_rank)
   base_filtrada_c_rank$unidimensional=base_filtrada_c_rank |> 
     dplyr::select(-c(CVEGEO,`Sector--Municipio`))|> rowSums(na.rm = T)
-  paleta_dado_tema=colorNumeric(palette = "Reds",domain =base_filtrada_c_rank$unidimensional[base_filtrada_c_rank$unidimensional>0],na.color = "#cdcdcd")  
+  #paleta_dado_tema=colorNumeric(palette = "Reds",domain =base_filtrada_c_rank$unidimensional[base_filtrada_c_rank$unidimensional>0],na.color = "#cdcdcd")  
   return(base_filtrada_c_rank$unidimensional)
 }
 corteDeColores=function(zz,corte=0.1){
-  return(lapply(zz,FUN=\(x) {if(x/max(zz)>0.1){return(x/max(zz))}else{return(0.1)}}) |> unlist())
+  return(lapply(zz,FUN=\(x) {if(x/max(zz)>0.1 & x>0){
+    return(x/max(zz))
+    }else{
+      if(x==0){
+        return(0)
+      }else{return(0.1)}
+      
+      }
+    }) |> unlist())
 }
-generadorPopUp=function(tema=1,data_inicial=data_inicial){
-  posibles_temas=unique(copia_colnames)[3:9]
-  tema_seleccionado=posibles_temas[tema]
-  print(tema_seleccionado)
-  base_filtrada=data_inicial |> 
-    dplyr::select(CVEGEO,`Sector--Municipio`,dplyr::matches(paste0(tema_seleccionado,"--")))
-  zz=list()
-  zz=append(zz,)
-  lapply(names(base_filtrada), function(col_name) {
-    values <- data_inicial[[col_name]]
-    list(name = col_name, values = values)
-  }) |> lapply(FUN=\(z){paste0(z$name," .....",z$values)})
-   |> dplyr::select(-CVEGEO) |> 
-    lapply(FUN=\(x){
-      zz=append(zz,
-                names(x)
-                )
-      print(names(x))
-    })
-  return(zz)
-  #La idea es meter en una lista los datos que se mostrarán en cada renglón de la tarjeta.
-  #E.g.
-    #Municipio: mun_i
-    #indice_1: valor_1
-        #...
-    #indice_n: valor_n
-  lapply(names(data_inicial |> dplyr::select(CVEGEO, `Sector--Municipio`, `Desarrollo.económico--PIB per capita`)), function(col_name) {
-    values <- data_inicial[[col_name]]
-    list(name = col_name, values = values)
-  }) |> lapply(FUN=\(z){paste0(z$name,": ",z$values)}) |> lapply(FUN=\(w) {
-    ifelse(substr(w,start = nchar(w),nchar(w))==' ',"",w)
-  })
-  
-  
-  # paste(
-  #   "<b>Municipio: </b>", htmlEscape(turismo_shp$NOM_MUN), "<br>",
-  #   ifelse(!is.na(turismo_shp$empresas_a), 
-  #          paste0("<b>Empresas adheridas al código CCN: </b>",turismo_shp$empresas_a),
-  #          ""),
-  #   ifelse(!is.na(turismo_shp$incidentes_total), 
-  #          paste0("<table style='border-collapse: collapse; width: 100%; font-size: 12px;'>",
-  #                 "<tr><th style='border: 1px solid black; padding: 4px; text-align: center;'>Tipo de Delito</th>",
-  #                 "<th style='border: 1px solid black; padding: 4px; text-align: center;'>Cantidad</th></tr>"),
-  #          ""),
-  #   
-  #   
-  #   # Para cada delito, solo lo mostramos si el valor es mayor a 0
-  #   ifelse(turismo_shp$`Explotación de la prostitución ajena` > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Explotación de la prostitución ajena</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$`Explotación de la prostitución ajena`, "</td></tr>"),
-  #          ""),
-  #   
-  #   ifelse(turismo_shp$`Explotación laboral` > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Explotación laboral</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$`Explotación laboral`, "</td></tr>"),
-  #          ""),
-  #   
-  #   ifelse(turismo_shp$`Circulación de pornografía` > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Circulación de pornografía</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$`Circulación de pornografía`, "</td></tr>"),
-  #          ""),
-  #   
-  #   ifelse(turismo_shp$`Utilización de menores de 18 años en hechos delictivos` > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Utilización de menores de 18 años en hechos delictivos</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$`Utilización de menores de 18 años en hechos delictivos`, "</td></tr>"),
-  #          ""),
-  #   
-  #   ifelse(turismo_shp$`Otras formas de explotación sexual` > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Otras formas de explotación sexual</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$`Otras formas de explotación sexual`, "</td></tr>"),
-  #          ""),
-  #   
-  #   ifelse(turismo_shp$Esclavitud > 0, 
-  #          paste0("<tr><td style='border: 1px solid black; padding: 4px; text-align: center;'>Esclavitud</td><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$Esclavitud, "</td></tr>"),
-  #          ""),
-  #   ifelse(!is.na(turismo_shp$incidentes_total), 
-  #          paste0("<tr><th style='border: 1px solid black; padding: 4px; text-align: center;'>Total</th><td style='border: 1px solid black; padding: 4px; text-align: center;'>", turismo_shp$incidentes_total, "</td></tr>"),
-  #          ""),
-  #   
-  #   
-  #   "</table>"
-  # ) |>
-  #   sapply(FUN = function(x) HTML(x), USE.NAMES = F) |>
-  #   `class<-`("html") |> return()
-  #labelOptions = labelOptions(textsize = 14, direction = "top")
+generadorPopUp <- function(tema = 1, data_inicial = data_inicial) {
+  posibles_temas <- unique(copia_colnames)[3:9]
+  tema_seleccionado <- posibles_temas[tema]
+  base_filtrada <- data_inicial |>
+    dplyr::select(CVEGEO, `Sector--Municipio`, dplyr::matches(paste0(tema_seleccionado, "--")))
+  # CSS para cada popup
+  css_popup <- "<style>
+    .card {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      padding: 16px;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      max-width: 280px;
+    }
+    .card h2 {
+      font-size: 1.1em;
+      margin-bottom: 12px;
+      color: #d4c19c;
+    }
+    .indicator {
+      margin-bottom: 8px;
+      padding: 6px;
+      background-color: #f9fafc;
+      border-left: 4px solid #621132;
+      border-radius: 4px;
+    }
+    .indicator span {
+      font-weight: bold;
+      color: #555;
+    }
+  </style>"
+  z <- vector("character", length = nrow(base_filtrada))
+  for (i in seq_len(nrow(base_filtrada))) {
+    municipio <- base_filtrada$`Sector--Municipio`[i]
+    indicadores <- ""
+    for (j in 3:ncol(base_filtrada)) {
+      nombre <- names(base_filtrada)[j]
+      valor <- base_filtrada[[j]][i]
+      if (!is.na(valor) && valor != "") {
+        indicadores <- paste0(indicadores,
+                              '<div class="indicator"><span>',
+                              gsub(paste0(tema_seleccionado, "--"), "", nombre),
+                              '</span> ', '</div>')
+      }
+    }
+    z[i] <- paste0(
+      css_popup,
+      '<div class="card">',
+      '<h2>', municipio, '</h2>',
+      ifelse(indicadores!='',paste0('<h2 style="color:#1d1d1b">', "Indicadores negativos en el municipio:", '</h2>'),""),
+      indicadores,
+      '</div>'
+    )
+  }
+  return(z)
 }
-generadorPopUp(tema = 1)
-corteDeColores(generarPaleta(tema = 7))
-zz=corteDeColores(generarPaleta(tema = 2))
-zz
+
+library(sf)
+st_write(capa_de_regiones,"../../../../Jair/Reutilizables/shapes/regional.geojson",driver = "GeoJSON")
+capa_de_regiones=sf::read_sf("../../../../Jair/Reutilizables/shapes/Regional_.shp")
+library(leaflet.extras2)
+library(leaflet.extras)
+library(leaflet)
+library(htmlwidgets)
+library(dplyr)
+library(leaflegend)
 mapa_web=leaflet() |> 
   addTiles() |> 
-  addPolygons(data=municipios |> as("Spatial"),group = "municipios_base",label = municipios$NOMGEO,popup = "QAAAA",color = "white",fillColor = "gray",weight = 2,fillOpacity = 0.3) |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Sector--Municipio`,`Desarrollo.económico--PIB per capita`,`Desarrollo.económico--PIB Turístico per capita`,`Desarrollo.económico--Empleos formales generados ante el Imss`),by='CVEGEO') |> 
-                dplyr::filter(`Desarrollo.económico--PIB per capita`!='' | `Desarrollo.económico--Empleos formales generados ante el Imss`!='' | `Desarrollo.económico--Empleos formales generados ante el Imss`!='' ),group = "Desarrollo Económico",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 1)) ,color = "white") |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Pobreza.y.carencias.2010.2020--Rezago Educativo`:`Pobreza.y.carencias.2010.2020--Carencia por acceso a los servicios de salud`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Pobreza y Carencias",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 2)) ,color = "white",) |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Salud--Camas  por cada mil habitantes`:`Salud--Consultorios por cada mil habitantes`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Salud",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 3)) ,color = "white",) |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Educación--Grado promedio de escolaridad`:`Educación--% Analfabetismo`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Educación",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 4)) ,color = "white",) |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Medio.Ambiente--Plantas Tratadoras de Aguas residuales por cada mil habitantes`:`Medio.Ambiente--Volumen tratado en las PTARs  (Millones m3)`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Medio Ambiente",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 5)) ,color = "white",) |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Seguridad.Pública--Incidencia Delictiva del Fuero Común`:`Seguridad.Pública--Robo a casa habitación`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Seguridad Pública",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 6)) ,color = "white") |> 
-  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Vivienda--Hacinamiento`:`Vivienda--% Viviendas con menor disponibilidad de computadora`),by='CVEGEO') |> 
-                dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!='')),group = "Vivienda",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 7)) ,color = "white") |> 
+  addPolygons(data=municipios |> as("Spatial"),group = "municipios_base",label = municipios$NOMGEO,,color = "white",fillColor = "gray",weight = 2,fillOpacity = 0.3) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Sector--Municipio`,`Desarrollo.económico--PIB per capita`,`Desarrollo.económico--PIB Turístico per capita`,`Desarrollo.económico--Empleos formales generados ante el Imss`),by='CVEGEO') 
+              # |> dplyr::filter(`Desarrollo.económico--PIB per capita`!='' | `Desarrollo.económico--Empleos formales generados ante el Imss`!='' | `Desarrollo.económico--Empleos formales generados ante el Imss`!='' )
+              ,group = "Desarrollo Económico",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 1)) ,color = "white", popup =gsub("<br>  <br>","",generadorPopUp(tema = 1,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Pobreza.y.carencias.2010.2020--Rezago Educativo`:`Pobreza.y.carencias.2010.2020--Carencia por acceso a los servicios de salud`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Pobreza y Carencias",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 2)) 
+              ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 2,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Salud--Camas  por cada mil habitantes`:`Salud--Consultorios por cada mil habitantes`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Salud",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 3)) 
+              ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 3,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Educación--Grado promedio de escolaridad`:`Educación--% Analfabetismo`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Educación",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 4)) ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 4,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Medio.Ambiente--Plantas Tratadoras de Aguas residuales por cada mil habitantes`:`Medio.Ambiente--Volumen tratado en las PTARs  (Millones m3)`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Medio Ambiente",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 5)) ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 5,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Seguridad.Pública--Incidencia Delictiva del Fuero Común`:`Seguridad.Pública--Robo a casa habitación`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Seguridad Pública",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 6)) ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 6,data_inicial = data_inicial))) |> 
+  addPolygons(data=merge(municipios |> dplyr::select(CVEGEO),data_inicial |> dplyr::select(CVEGEO,`Vivienda--Hacinamiento`:`Vivienda--% Viviendas con menor disponibilidad de computadora`),by='CVEGEO') 
+              # |> dplyr::filter_at(vars(-CVEGEO,-geometry), any_vars(.!=''))
+              ,group = "Vivienda",fillColor  = "red",fillOpacity = corteDeColores(generarPaleta(tema = 7)) ,color = "white",popup =gsub("<br>  <br>","",generadorPopUp(tema = 7,data_inicial = data_inicial))) |> 
   addSearchFeatures(targetGroups = "municipios_base",options = searchFeaturesOptions(zoom=12,openPopup=F,hideMarkerOnCollapse=T)) |> 
-  
-  addLayersControl(baseGroups = c("Desarrollo Económico","Pobreza y Carencias","Salud","Educación","Medio Ambiente","Seguridad Pública","Vivienda"),options = layersControlOptions(collapsed = F)) 
-  
+  addPolylines(data=capa_de_regiones |> sf::st_cast("LINESTRING") |> as("Spatial"),group = "regional_base",color = "black",weight = 2.5) |> 
+  addLayersControl(baseGroups = c("Desarrollo Económico","Pobreza y Carencias","Salud","Educación","Medio Ambiente","Seguridad Pública","Vivienda"),options = layersControlOptions(collapsed = F,autoZIndex = T)) |> 
+  onRender("
+    function() {
+      var map = this;
+      function bringRegionalToFront() {
+        map.eachLayer(function(layer) {
+          if (layer.options && layer.options.group === 'regional_base') {
+            if (layer.bringToFront) {
+              layer.bringToFront();
+            }
+          }
+        });
+        
+        let control_info=document.getElementsByClassName('info legend leaflet-control');
+        control_info[0].style.backgroundColor='darkgray';
+      }
 
-mapa_web
+      bringRegionalToFront();
+
+      map.on('baselayerchange', function(e) {
+        bringRegionalToFront();
+      });
+    }
+  ") |> 
+  addLegendImage(
+    images = c("imagenes/blanco.png", "imagenes/negro.png"),
+    labels = c("Municipios", "Regiones"),
+    width = 30, height = 30,
+    position = 'bottomleft',
+    labelStyle = "font-size:14px"
+  ) |> 
+  addLegend(
+    position = "bottomright",
+    pal = colorFactor(palette = c("red","#ff7f7f"),reverse = T,domain = c("Alta Prioridad","Muy Alta Prioridad"), na.color = "#808080"),opacity = 1,
+    values = c("Muy Alta Prioridad","Alta Prioridad","Sin prioridad")
+  ) 
+
+mapa_web |> htmlwidgets::saveWidget("problematicas_municipios.html",title = "Municipios en Prioridad")
+
 
