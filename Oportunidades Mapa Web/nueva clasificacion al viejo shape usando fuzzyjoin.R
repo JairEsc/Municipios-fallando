@@ -4,6 +4,7 @@ shape_oportunidades$C5[shape_oportunidades$CVE_MUN=='031']='Infraestructura carr
 shape_oportunidades$P5[shape_oportunidades$CVE_MUN=='031']='Mal estado del transporte público intermunicipal'
 shape_oportunidades=shape_oportunidades |> dplyr::arrange(CVEGEO)
 
+
 #[Intento de Fuzzy match]
 library(fuzz)
 
@@ -28,6 +29,7 @@ stringdist_join(a, b,
 
 ###Nuestro ejemplo. 
 shape_oportunidades_pivotes=shape_oportunidades |> st_drop_geometry()
+shape_oportunidades_pivotes$orden_original=1:nrow(shape_oportunidades_pivotes)
 shape_oportunidades_pivotes=shape_oportunidades_pivotes |> dplyr::mutate(
   CP1=paste(C1,P1),
   CP2=paste(C2,P2),
@@ -53,7 +55,11 @@ zzz=stringdist_join(shape_oportunidades_pivotes |> dplyr::select(CVEGEO,CSValues
                     distance_col = "dist") %>%
   group_by(CSValues.x) %>%
   slice_min(order_by = dist, n = 1,with_ties = F)
-shape_oportunidades_pivotes$orden_original=1:nrow(shape_oportunidades_pivotes)
+###Corregimos a mano el fuzzyjoin
+zzz |> write.csv("fuzzyjoin.csv",fileEncoding = "latin1",row.names = F)
+zzz =read.csv("fuzzyjoin.csv",fileEncoding = "latin1")
+
+
 shape_oportunidades_pivotes=merge(shape_oportunidades_pivotes,zzz,by.x='CSValues',by.y='CSValues.x',)
 shape_oportunidades_pivotes$CS=stringi::stri_extract(str = shape_oportunidades_pivotes$CSValues.y,regex  = "Medio Ambiente|Infraestructura y Transporte|Seguridad y corrupcion|Economia y Empleo|Agua y Crisis Hidrica|Educacion|Gestion territorial y desarrollo urbano|Problemas Sociales|Riesgos|Salud") 
 shape_oportunidades_pivotes$PS=stringi::stri_split_regex(str = shape_oportunidades_pivotes$CSValues.y,pattern = "Medio Ambiente|Infraestructura y Transporte|Seguridad y corrupcion|Economia y Empleo|Agua y Crisis Hidrica|Educacion|Gestion territorial y desarrollo urbano|Problemas Sociales|Riesgos|Salud",n = 2) |> lapply(\(x) x[2]) |> unlist() |> stringr::str_squish()
