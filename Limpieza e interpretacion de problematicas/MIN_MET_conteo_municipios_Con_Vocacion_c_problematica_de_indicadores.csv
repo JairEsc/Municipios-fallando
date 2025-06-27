@@ -1,0 +1,31 @@
+"","Minería.Metálicos.nombre_columna","Minería.Metálicos.conteo_valores_no_vacios","Minería.Metálicos.prefijo_extraido"
+"1","Sector--Municipio",5,NA
+"2","Región",5,NA
+"3","CVEGEO",5,NA
+"4","Incidencia Delictiva del Fuero Común",5,"Seguridad Pública"
+"5","Volumen tratado en las PTARs  (Millones m3)",4,"Medio Ambiente"
+"6","Camas  por cada mil habitantes",3,"Salud"
+"7","Personal médico por cada mil habitantes",3,"Salud"
+"8","Población con derecho a los servicios de salud",3,"Salud"
+"9","Tasa de Prevalencia delictiva por cada 1000 habitantes",3,"Seguridad Pública"
+"10","Rezago Educativo",2,"Pobreza y carencias"
+"11","Población con discapacidad
+2010-2020",2,"Salud"
+"12","Plantas Tratadoras de Aguas residuales por cada mil habitantes",2,"Medio Ambiente"
+"13","Toneladas de basura generadas por cada mil habitantes",2,"Medio Ambiente"
+"14","Feminicidios",2,"Seguridad Pública"
+"15","Violencia intrafamiliar",2,"Seguridad Pública"
+"16","% Viviendas con menor disponibilidad de internet",2,"Vivienda"
+"17","% Viviendas con menor disponibilidad de computadora",2,"Vivienda"
+"18","Pobreza 2010-2020 CONEVAL",1,"Pobreza y carencias"
+"19","índice de marginación
+2010-2020",1,"Pobreza y carencias"
+"20","Acceso a la seguridad social",1,"Pobreza y carencias"
+"21","Acceso a la alimentación nutritiva y de calidad",1,"Pobreza y carencias"
+"22","Porcentaje de la Población con ingreso inferior a la línea de pobreza por ingresos",1,"Pobreza y carencias"
+"23","Carencia por acceso a los servicios de salud",1,"Pobreza y carencias"
+"24","Consultorios por cada mil habitantes",1,"Salud"
+"25","% Deserción
+en educación media superior",1,"Educación"
+"26","Homicidios",1,"Seguridad Pública"
+"27","Hacinamiento",1,"Vivienda"
